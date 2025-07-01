@@ -17,6 +17,8 @@ We apply the HiFi_Net for the deepfake detection as the following diagram:
   
 </center>
 
+More results please refer to the table $3$ of our ECCV2024 paper [[ArXiv]](https://arxiv.org/pdf/2402.00126)
+
 ### The Pre-trained Weights and User-friendly Preprocessed Dataset:
 1. The pre-trained weights on FF++ can be download via [[link]](https://drive.google.com/drive/folders/1AElYlVxsahgGIua3m3Kj2VhSc3S7ADLJ?usp=sharing)
 2. We offer a preprocessed FF++ dataset in the HDF5 file format [[link]](https://drive.google.com/drive/folders/1ovuurFCkBfmcMq7HKO5ph36U1QyL75UA?usp=sharing), supporting faster I/O. The dataset follows the naming ```FF++_{manipulation_type}_{compression rate}.h5``` and is structured as follows:
