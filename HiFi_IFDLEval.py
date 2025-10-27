@@ -71,7 +71,7 @@ def main():
         done_csv_list=args.done_csv_list,
         model_name="HiFi_IFDL",
     )
-    dataloader = DataLoader(dataset, batch_size=args.batch_size, shuffle=False, num_workers=4,
+    dataloader = DataLoader(dataset, batch_size=args.batch_size, shuffle=False, num_workers=16,
                             collate_fn=collate_skip_none)
 
     results_path = Path(args.results)
