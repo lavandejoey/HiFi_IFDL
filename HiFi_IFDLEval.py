@@ -20,6 +20,20 @@ logging.basicConfig(
 log = logging.getLogger(__name__)
 
 
+def parse_args():
+    parser = argparse.ArgumentParser(description="HiFi-IFDL Inference on FakePartsV2")
+    parser.add_argument('--data_root', type=str, required=True, help="Root directory of the dataset")
+    parser.add_argument('--results', type=str, required=True, help="Directory to save results")
+    parser.add_argument('--data_csv', type=str, default=None, help="Path to the dataset index CSV")
+    parser.add_argument('--done_csv_list', nargs='+', default=[], help="List of CSV files with done samples")
+    parser.add_argument('--batch_size', type=int, default=100, help="Batch size for inference")
+    parser.add_argument('--crop_size', type=int, default=256)
+    parser.add_argument('--learning_rate', type=float, default=5e-5)
+    parser.add_argument('--loss_type', type=str, default='ce', choices=['ce', 'dm'])
+
+    return parser.parse_args()
+
+
 class FakePartsV2Dataset(FakePartsV2DatasetBase):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -37,17 +51,7 @@ def append_to_csv(df: pd.DataFrame, csv_path: Path):
 
 
 def main():
-    parser = argparse.ArgumentParser(description="HiFi-IFDL Inference on FakePartsV2")
-    parser.add_argument('--data_root', type=str, required=True, help="Root directory of the dataset")
-    parser.add_argument('--results', type=str, required=True, help="Directory to save results")
-    parser.add_argument('--data_csv', type=str, default=None, help="Path to the dataset index CSV")
-    parser.add_argument('--done_csv_list', nargs='+', default=[], help="List of CSV files with done samples")
-    parser.add_argument('--batch_size', type=int, default=100, help="Batch size for inference")
-    parser.add_argument('--crop_size', type=int, default=256)
-    parser.add_argument('--learning_rate', type=float, default=5e-5)
-    parser.add_argument('--loss_type', type=str, default='ce', choices=['ce', 'dm'])
-
-    args = parser.parse_args()
+    args = parse_args()
 
     # Load model
     log.info("Loading HiFi-IFDL model...")

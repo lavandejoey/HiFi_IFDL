@@ -26,7 +26,7 @@ from dataclasses import dataclass, asdict
 from enum import Enum
 from io import BytesIO
 from pathlib import Path
-from sklearn.metrics import accuracy_score, roc_auc_score, roc_curve
+# from sklearn.metrics import accuracy_score, roc_auc_score, roc_curve
 from torch.utils.data import Dataset
 from tqdm import tqdm
 from typing import Mapping, Sequence, Tuple
@@ -437,80 +437,80 @@ def _ensure_binary_labels(df: pd.DataFrame) -> None:
         raise ValueError(f"`label` must be binary in {{0,1}}, got: {uniq}")
 
 
-def overall_accuracy(df: pd.DataFrame) -> float:
-    _ensure_binary_labels(df)
-    return float(accuracy_score(df["label"].to_numpy(), df["pred"].to_numpy()))
+# def overall_accuracy(df: pd.DataFrame) -> float:
+#     _ensure_binary_labels(df)
+#     return float(accuracy_score(df["label"].to_numpy(), df["pred"].to_numpy()))
 
 
-def accuracy_by(df: pd.DataFrame, by: Union[str, Sequence[str]]) -> pd.DataFrame:
-    _ensure_binary_labels(df)
-    if isinstance(by, str):
-        by = [by]
-    g = df.groupby(list(by), dropna=False)
-    acc = g.apply(lambda x: accuracy_score(x["label"].to_numpy(), x["pred"].to_numpy()))
-    return acc.reset_index(name="accuracy")
+# def accuracy_by(df: pd.DataFrame, by: Union[str, Sequence[str]]) -> pd.DataFrame:
+#     _ensure_binary_labels(df)
+#     if isinstance(by, str):
+#         by = [by]
+#     g = df.groupby(list(by), dropna=False)
+#     acc = g.apply(lambda x: accuracy_score(x["label"].to_numpy(), x["pred"].to_numpy()))
+#     return acc.reset_index(name="accuracy")
 
 
-def roc_auc_overall(df: pd.DataFrame) -> Optional[float]:
-    _ensure_binary_labels(df)
-    y_true = df["label"].to_numpy()
-    y_score = df["score"].to_numpy()
-    # Need both classes present for AUC
-    if len(np.unique(y_true)) < 2:
-        return None
-    return float(roc_auc_score(y_true, y_score))
+# def roc_auc_overall(df: pd.DataFrame) -> Optional[float]:
+#     _ensure_binary_labels(df)
+#     y_true = df["label"].to_numpy()
+#     y_score = df["score"].to_numpy()
+#     # Need both classes present for AUC
+#     if len(np.unique(y_true)) < 2:
+#         return None
+#     return float(roc_auc_score(y_true, y_score))
 
 
-def roc_auc_by(df: pd.DataFrame, by: Union[str, Sequence[str]]) -> pd.DataFrame:
-    _ensure_binary_labels(df)
-    if isinstance(by, str):
-        by = [by]
-    rows = []
-    for keys, x in df.groupby(list(by), dropna=False):
-        y_true = x["label"].to_numpy()
-        y_score = x["score"].to_numpy()
-        if len(np.unique(y_true)) < 2:
-            auc = None
-        else:
-            auc = float(roc_auc_score(y_true, y_score))
-        key_vals = keys if isinstance(keys, tuple) else (keys,)
-        rows.append(tuple(key_vals) + (auc,))
-    cols = list(by) + ["roc_auc"]
-    return pd.DataFrame(rows, columns=cols)
+# def roc_auc_by(df: pd.DataFrame, by: Union[str, Sequence[str]]) -> pd.DataFrame:
+#     _ensure_binary_labels(df)
+#     if isinstance(by, str):
+#         by = [by]
+#     rows = []
+#     for keys, x in df.groupby(list(by), dropna=False):
+#         y_true = x["label"].to_numpy()
+#         y_score = x["score"].to_numpy()
+#         if len(np.unique(y_true)) < 2:
+#             auc = None
+#         else:
+#             auc = float(roc_auc_score(y_true, y_score))
+#         key_vals = keys if isinstance(keys, tuple) else (keys,)
+#         rows.append(tuple(key_vals) + (auc,))
+#     cols = list(by) + ["roc_auc"]
+#     return pd.DataFrame(rows, columns=cols)
 
 
-def tpr_at_fpr(df: pd.DataFrame, target_fpr: float = 1e-2) -> Optional[float]:
-    """
-    Compute TPR at the smallest threshold where FPR <= target_fpr.
-    Returns None if ROC cannot be computed.
-    """
-    _ensure_binary_labels(df)
-    y_true = df["label"].to_numpy()
-    y_score = df["score"].to_numpy()
-    if len(np.unique(y_true)) < 2:
-        return None
+# def tpr_at_fpr(df: pd.DataFrame, target_fpr: float = 1e-2) -> Optional[float]:
+#     """
+#     Compute TPR at the smallest threshold where FPR <= target_fpr.
+#     Returns None if ROC cannot be computed.
+#     """
+#     _ensure_binary_labels(df)
+#     y_true = df["label"].to_numpy()
+#     y_score = df["score"].to_numpy()
+#     if len(np.unique(y_true)) < 2:
+#         return None
+#
+#     fpr, tpr, thresh = roc_curve(y_true, y_score, pos_label=1)
+#     # Find all positions with FPR <= target; pick the *max* TPR among them
+#     mask = fpr <= target_fpr
+#     if not np.any(mask):
+#         # No point on ROC meets the target FPR; return best-effort (closest over)
+#         idx = int(np.argmin(np.abs(fpr - target_fpr)))
+#         return float(tpr[idx])
+#     return float(np.max(tpr[mask]))
 
-    fpr, tpr, thresh = roc_curve(y_true, y_score, pos_label=1)
-    # Find all positions with FPR <= target; pick the *max* TPR among them
-    mask = fpr <= target_fpr
-    if not np.any(mask):
-        # No point on ROC meets the target FPR; return best-effort (closest over)
-        idx = int(np.argmin(np.abs(fpr - target_fpr)))
-        return float(tpr[idx])
-    return float(np.max(tpr[mask]))
 
-
-def tpr_at_fpr_by(df: pd.DataFrame, by: Union[str, Sequence[str]], target_fpr: float = 1e-2) -> pd.DataFrame:
-    _ensure_binary_labels(df)
-    if isinstance(by, str):
-        by = [by]
-    rows = []
-    for keys, x in df.groupby(list(by), dropna=False):
-        val = tpr_at_fpr(x, target_fpr=target_fpr)
-        key_vals = keys if isinstance(keys, tuple) else (keys,)
-        rows.append(tuple(key_vals) + (val,))
-    cols = list(by) + [f"tpr@fpr={target_fpr:g}"]
-    return pd.DataFrame(rows, columns=cols)
+# def tpr_at_fpr_by(df: pd.DataFrame, by: Union[str, Sequence[str]], target_fpr: float = 1e-2) -> pd.DataFrame:
+#     _ensure_binary_labels(df)
+#     if isinstance(by, str):
+#         by = [by]
+#     rows = []
+#     for keys, x in df.groupby(list(by), dropna=False):
+#         val = tpr_at_fpr(x, target_fpr=target_fpr)
+#         key_vals = keys if isinstance(keys, tuple) else (keys,)
+#         rows.append(tuple(key_vals) + (val,))
+#     cols = list(by) + [f"tpr@fpr={target_fpr:g}"]
+#     return pd.DataFrame(rows, columns=cols)
 
 
 def _balance_by_group(df: pd.DataFrame, by: Union[str, Sequence[str]],
@@ -540,90 +540,90 @@ def _balance_by_group(df: pd.DataFrame, by: Union[str, Sequence[str]],
     return pd.concat(pieces, axis=0, ignore_index=True)
 
 
-def accuracy_by_fake(df: pd.DataFrame, by: Union[str, Sequence[str]]) -> pd.DataFrame:
-    """
-    Accuracy computed **only on the fake class** per group (equivalent to recall/TPR for label==1).
-    """
-    if isinstance(by, str):
-        by = [by]
-    _ensure_binary_labels(df)
-    rows = []
-    for keys, x in df.groupby(list(by), dropna=False):
-        x_fake = x[x["label"] == 1]
-        if len(x_fake) == 0:
-            acc = None
-        else:
-            acc = float(accuracy_score(x_fake["label"].to_numpy(), x_fake["pred"].to_numpy()))
-        key_vals = keys if isinstance(keys, tuple) else (keys,)
-        rows.append(tuple(key_vals) + (acc,))
-    cols = list(by) + ["accuracy_fake_only"]
-    return pd.DataFrame(rows, columns=cols)
+# def accuracy_by_fake(df: pd.DataFrame, by: Union[str, Sequence[str]]) -> pd.DataFrame:
+#     """
+#     Accuracy computed **only on the fake class** per group (equivalent to recall/TPR for label==1).
+#     """
+#     if isinstance(by, str):
+#         by = [by]
+#     _ensure_binary_labels(df)
+#     rows = []
+#     for keys, x in df.groupby(list(by), dropna=False):
+#         x_fake = x[x["label"] == 1]
+#         if len(x_fake) == 0:
+#             acc = None
+#         else:
+#             acc = float(accuracy_score(x_fake["label"].to_numpy(), x_fake["pred"].to_numpy()))
+#         key_vals = keys if isinstance(keys, tuple) else (keys,)
+#         rows.append(tuple(key_vals) + (acc,))
+#     cols = list(by) + ["accuracy_fake_only"]
+#     return pd.DataFrame(rows, columns=cols)
 
 
 # ============================== Convenience report ==============================
-def quick_report(df: pd.DataFrame, *, balance_for_groups: bool = True, group_fake_only: bool = True,
-                 random_state: Optional[int] = None) -> Mapping[str, object]:
-    """
-    Produce a small dictionary of core numbers. Suitable for logging.
+# def quick_report(df: pd.DataFrame, *, balance_for_groups: bool = True, group_fake_only: bool = True,
+#                  random_state: Optional[int] = None) -> Mapping[str, object]:
+#     """
+#     Produce a small dictionary of core numbers. Suitable for logging.
+#
+#     DF input need cols: ['sample_id', 'task', 'method', 'subset', 'label', 'model', 'mode', 'score', 'pred']
+#     "sample_id",  # unique id per row (string or int) you use to join with index
+#     "task",  # from dataset
+#     "method",  # from dataset
+#     "subset",  # real_videos/fake_videos/... from dataset
+#     "label",  # 0=real, 1=fake  (ground truth)
+#     "model",  # model name or identifier
+#     "mode",  # 'video' or 'frame'
+#     "score",  # real-valued score, higher => more likely fake
+#     "pred",  # hard prediction in {0,1} produced by the model
+#
+#     Overall Accuracy
+#     Accuracy by Task
+#     Accuracy by Methods
+#     ROC-AUC by Task
+#     ROC-AUC by Methods
+#     TPR@FPR=1e-2 by Task
+#     TPR@FPR=1e-2 by Methods
+#     """
+#     # Prepare grouped DataFrames
+#     df_task = df
+#     df_method = df
+#     if balance_for_groups:
+#         df_task = _balance_by_group(df, by="task", random_state=random_state)
+#         df_method = _balance_by_group(df, by="method", random_state=random_state)
+#     # Grouped accuracy: fake-only (recall) if requested; else legacy accuracy
+#     acc_task = accuracy_by_fake(df_task, "task") if group_fake_only else accuracy_by(df_task, "task")
+#     acc_method = accuracy_by_fake(df_method, "method") if group_fake_only else accuracy_by(df_method, "method")
+#     # Grouped ROC-AUC / TPR: computed on the (optionally) balanced sets including both classes
+#     roc_task = roc_auc_by(df_task, "task")
+#     roc_method = roc_auc_by(df_method, "method")
+#     tpr_task = tpr_at_fpr_by(df_task, "task", target_fpr=1e-2)
+#     tpr_method = tpr_at_fpr_by(df_method, "method", target_fpr=1e-2)
+#     return {
+#         "overall": {
+#             "accuracy": overall_accuracy(df),
+#             "roc_auc": roc_auc_overall(df),
+#             "tpr@1e-2": tpr_at_fpr(df, target_fpr=1e-2),
+#         },
+#         "by_task": {
+#             "accuracy": acc_task,
+#             "roc_auc": roc_task,
+#             "tpr@1e-2": tpr_task,
+#         },
+#         "by_method": {
+#             "accuracy": acc_method,
+#             "roc_auc": roc_method,
+#             "tpr@1e-2": tpr_method,
+#         },
+#     }
 
-    DF input need cols: ['sample_id', 'task', 'method', 'subset', 'label', 'model', 'mode', 'score', 'pred']
-    "sample_id",  # unique id per row (string or int) you use to join with index
-    "task",  # from dataset
-    "method",  # from dataset
-    "subset",  # real_videos/fake_videos/... from dataset
-    "label",  # 0=real, 1=fake  (ground truth)
-    "model",  # model name or identifier
-    "mode",  # 'video' or 'frame'
-    "score",  # real-valued score, higher => more likely fake
-    "pred",  # hard prediction in {0,1} produced by the model
 
-    Overall Accuracy
-    Accuracy by Task
-    Accuracy by Methods
-    ROC-AUC by Task
-    ROC-AUC by Methods
-    TPR@FPR=1e-2 by Task
-    TPR@FPR=1e-2 by Methods
-    """
-    # Prepare grouped DataFrames
-    df_task = df
-    df_method = df
-    if balance_for_groups:
-        df_task = _balance_by_group(df, by="task", random_state=random_state)
-        df_method = _balance_by_group(df, by="method", random_state=random_state)
-    # Grouped accuracy: fake-only (recall) if requested; else legacy accuracy
-    acc_task = accuracy_by_fake(df_task, "task") if group_fake_only else accuracy_by(df_task, "task")
-    acc_method = accuracy_by_fake(df_method, "method") if group_fake_only else accuracy_by(df_method, "method")
-    # Grouped ROC-AUC / TPR: computed on the (optionally) balanced sets including both classes
-    roc_task = roc_auc_by(df_task, "task")
-    roc_method = roc_auc_by(df_method, "method")
-    tpr_task = tpr_at_fpr_by(df_task, "task", target_fpr=1e-2)
-    tpr_method = tpr_at_fpr_by(df_method, "method", target_fpr=1e-2)
-    return {
-        "overall": {
-            "accuracy": overall_accuracy(df),
-            "roc_auc": roc_auc_overall(df),
-            "tpr@1e-2": tpr_at_fpr(df, target_fpr=1e-2),
-        },
-        "by_task": {
-            "accuracy": acc_task,
-            "roc_auc": roc_task,
-            "tpr@1e-2": tpr_task,
-        },
-        "by_method": {
-            "accuracy": acc_method,
-            "roc_auc": roc_method,
-            "tpr@1e-2": tpr_method,
-        },
-    }
-
-
-__all__ = [
-    # indexing
-    "Subset", "IndexEntry", "data_parse", "index_list", "index_dataframe",
-    # schema helpers
-    "REQUIRED_COLS", "standardise_predictions",
-    # metrics
-    "overall_accuracy", "accuracy_by", "roc_auc_overall", "roc_auc_by",
-    "tpr_at_fpr", "tpr_at_fpr_by", "quick_report",
-]
+# __all__ = [
+#     # indexing
+#     "Subset", "IndexEntry", "data_parse", "index_list", "index_dataframe",
+#     # schema helpers
+#     "REQUIRED_COLS", "standardise_predictions",
+#     # metrics
+#     "overall_accuracy", "accuracy_by", "roc_auc_overall", "roc_auc_by",
+#     "tpr_at_fpr", "tpr_at_fpr_by", "quick_report",
+# ]
